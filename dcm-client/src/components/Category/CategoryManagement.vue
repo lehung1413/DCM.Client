@@ -22,7 +22,7 @@
             <v-col cols="12" md="6">
               <v-btn
                 color="error"
-                @click="deleteCategory"
+                @click="deleteCategoryById"
                 v-if="selectedCategory"
               >
                 Delete
@@ -214,8 +214,18 @@
 
 <script setup>
 import { ref, onMounted, reactive } from "vue";
-import api from "@/services/api";
+// import api from "@/services/api";
 import SessionTable from "./PreviewSession.vue";
+import {
+  fetchCategories,
+  fetchCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  fetchTags,
+  fetchSessionsByCategory,
+  fetchPreviewSessions,
+} from "@/services/api";
 
 const categories = ref([]);
 const selectedCategory = ref(null);
@@ -235,18 +245,15 @@ const closeSuccessDialog = () => {
   showSuccessDialog.value = false;
 };
 
-const fetchCategories = async () => {
-  const response = await api.get("/Categories");
-
-  categories.value = response.data.map((category) => ({
+const fetchCategoriesData = async () => {
+  categories.value = (await fetchCategories()).map((category) => ({
     categoryId: category.categoryId,
     title: category.name,
   }));
 };
 
-const fetchTags = async () => {
-  const response = await api.get("/Tags");
-  tags.value = response.data;
+const fetchTagsData = async () => {
+  tags.value = await fetchTags();
 };
 const sessions = ref([]);
 
@@ -257,16 +264,13 @@ const fetchSessions = async () => {
   }
 
   try {
-    const response = await api.get(
-      `/Sessions/category/${selectedCategory.value}`
-    );
-    sessions.value = response.data;
+    sessions.value = await fetchSessionsByCategory(selectedCategory.value);
   } catch (error) {
     alert("Failed to fetch sessions. Please try again.");
   }
 };
 
-const fetchPreviewSessions = async () => {
+const fetchPreviewSessionsData = async () => {
   try {
     const data = {
       ...categoryForm.value,
@@ -281,8 +285,7 @@ const fetchPreviewSessions = async () => {
       ),
     };
 
-    const response = await api.post(`/Sessions/previewSession`, data);
-    sessions.value = response.data;
+    sessions.value = await fetchPreviewSessions(data);
   } catch (error) {
     alert("Failed to fetch sessions. Please try again.");
   }
@@ -329,9 +332,7 @@ const loadCategory = async () => {
     return;
   }
   try {
-    const response = await api.get(`/Categories/${selectedCategory.value}`);
-    const category = response.data;
-
+    const category = await fetchCategoryById(selectedCategory.value);
     getCategoryForm(category);
   } catch (error) {
     console.error("Error loading category:", error);
@@ -432,25 +433,25 @@ const saveCategory = async () => {
   };
 
   if (selectedCategory.value) {
-    await api.put(`/categories/${selectedCategory.value}`, data);
+    await updateCategory(selectedCategory.value, data);
   } else {
-    await api.post("/categories", data);
+    await createCategory(data);
   }
 
   showSuccessDialog.value = true;
   loadCategory();
-  fetchCategories();
+  fetchCategoriesData();
   resetForm();
 };
 
-const deleteCategory = () => {
+const deleteCategoryById = () => {
   showDeletePopup.value = true;
 };
 
 const confirmDelete = async () => {
-  await api.delete(`/categories/${selectedCategory.value}`);
+  await deleteCategory(selectedCategory.value);
   showDeletePopup.value = false;
-  fetchCategories();
+  fetchCategoriesData();
   resetForm();
   showSuccessDialog.value = true;
 };
@@ -460,7 +461,7 @@ const cancelDelete = () => {
 };
 
 const previewSessions = () => {
-  fetchPreviewSessions(); // Fetch the session list for the selected category
+  fetchPreviewSessionsData(); // Fetch the session list for the selected category
 };
 
 const searchSessions = () => {
@@ -486,15 +487,6 @@ const formatDate = (condition, field) => {
   condition[field] = value;
 };
 
-const formatDateString = (dateString) => {
-  if (!dateString) return ""; // Return empty string if input is null or undefined
-  const date = new Date(dateString);
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // Add leading zero to month
-  const day = String(date.getDate()).padStart(2, "0"); // Add leading zero to day
-  const year = date.getFullYear();
-  return `${month}/${day}/${year}`; // Return formatted date
-};
-
 const validateDate = (condition, field) => {
   const dateValue = condition[field];
   const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
@@ -509,8 +501,8 @@ const validateDate = (condition, field) => {
 };
 
 onMounted(() => {
-  fetchCategories();
-  fetchTags();
+  fetchCategoriesData();
+  fetchTagsData();
 });
 </script>
 

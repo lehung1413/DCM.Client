@@ -28,12 +28,6 @@ export default {
         value: "categories",
         route: "/categories",
       },
-      {
-        icon: "mdi-magnify",
-        title: "Sessions",
-        value: "sessions",
-        route: "/sessions",
-      },
     ];
     const navigate = (route) => {
       router.push(route);
