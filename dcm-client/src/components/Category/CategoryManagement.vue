@@ -281,6 +281,12 @@ const fetchPreviewSessionsData = async () => {
           valueString: Array.isArray(condition.valueString)
             ? condition.valueString.join(",") // Convert array to JSON string
             : condition.valueString,
+          valueDateTimeFrom: condition.valueDateTimeFrom
+            ? parseToUTCDate(condition.valueDateTimeFrom) // Convert to Date object
+            : null,
+          valueDateTimeTo: condition.valueDateTimeTo
+            ? parseToUTCDate(condition.valueDateTimeTo) // Convert to Date object
+            : null,
         })
       ),
     };
@@ -313,10 +319,10 @@ const getCategoryForm = (category) => {
               .map((id) => parseInt(id.trim()))
           : condition.valueString || "",
       valueDateTimeFrom: condition.valueDateTimeFrom
-        ? new Date(condition.valueDateTimeFrom).toISOString().split("T")[0]
+        ? formatToMMDDYYYY(condition.valueDateTimeFrom)
         : null,
       valueDateTimeTo: condition.valueDateTimeTo
-        ? new Date(condition.valueDateTimeTo).toISOString().split("T")[0]
+        ? formatToMMDDYYYY(condition.valueDateTimeFrom)
         : null,
       errors: {
         valueDateTimeFrom: "",
@@ -428,6 +434,12 @@ const saveCategory = async () => {
         valueString: Array.isArray(condition.valueString)
           ? condition.valueString.join(",") // Convert array to JSON string
           : condition.valueString,
+        valueDateTimeFrom: condition.valueDateTimeFrom
+          ? parseToUTCDate(condition.valueDateTimeFrom) // Convert to Date object
+          : null,
+        valueDateTimeTo: condition.valueDateTimeTo
+          ? parseToUTCDate(condition.valueDateTimeTo) // Convert to Date object
+          : null,
       })
     ),
   };
@@ -485,6 +497,24 @@ const formatDate = (condition, field) => {
   }
 
   condition[field] = value;
+};
+
+const parseToUTCDate = (dateString) => {
+  if (!dateString) return null;
+
+  const [month, day, year] = dateString
+    .split("/")
+    .map((part) => parseInt(part, 10));
+  return new Date(Date.UTC(year, month - 1, day)); // Month is 0-based in JavaScript
+};
+
+const formatToMMDDYYYY = (date) => {
+  if (!date) return null; // Handle null or undefined dates
+  const d = new Date(date);
+  const month = String(d.getMonth() + 1).padStart(2, "0"); // Add leading zero to month
+  const day = String(d.getDate()).padStart(2, "0"); // Add leading zero to day
+  const year = d.getFullYear();
+  return `${month}/${day}/${year}`;
 };
 
 const validateDate = (condition, field) => {
